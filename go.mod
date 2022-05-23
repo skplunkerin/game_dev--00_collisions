@@ -1,4 +1,4 @@
-module github.com/skplunkerin/ebiten-map_builder
+module github.com/skplunkerin/game_dev--00_collisions
 
 go 1.17
 

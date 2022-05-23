@@ -1,31 +1,48 @@
 # Objectives:
 
+This is a simple game dev project designed for learning beginner concepts using
+the [Ebiten](https://github.com/hajimehoshi/ebiten) 2D Golang game library. Much
+of the code will be inspired by or copied from other examples, and then modified
+to suit the below beginner objectives:
+
 - [x] get Ebiten working locally (the examples can run/work)
 
   - These are more complicated than thought for a 1st Ebiten dive:
 
+    _(found out about tilemaps (see [`unused_code/tilemaps/README.md`](/unused_code/tilemaps/README.md)_
+    _for my exploration and discovering of this); I'm not sure yet on how one_
+    _should create tilemap JSON objects, there's likely 3rd-party tools for_
+    _this, which I want to avoid using while focusing on beginner learning.)_
+
     - ~~[ ] begin codebase for a simple level builder:~~
     - ~~[ ] left-click to add a wall~~
     - ~~[ ] right-click to remove a wall~~
+    - ~~[ ] extras:~~
+      - ~~[ ] shift + click to add a dot/square (or some sort of player avatar)~~
+      - ~~[ ] spacebar to start the game using the level~~
+      - ~~[ ] arrow keys to navigate dot around~~
 
-  - [x] render a character (tile/image) on top of the tiles example map
-  - [x] move the character around with arrow keys
-    - [x] bonus: include `w`,`a`,`s`,`d` keys
-  - [ ] add collision detection, prevent running through:
-    - [x] map edges
-    - [ ] house walls
-    - [ ] front flowers
+  - These are more beginner friendly:
 
----
+    - [x] render a character (tile/image) on top of the tiles example map
+    - [x] move the character around with arrow keys
+      - [x] bonus: include `w`,`a`,`s`,`d` keys
+    - [ ] add collision detection, prevent running through:
+      - [x] map edges
+      - [ ] house walls
+      - [ ] front flowers
 
-- ~~[ ] extras:~~
-  - ~~[ ] shift + click to add a dot/square (or some sort of player avatar)~~
-  - ~~[ ] spacebar to start the game using the level~~
-  - ~~[ ] arrow keys to navigate dot around~~
+  - Next project will explore:
+    - side-scrolling larger map by controlling the camera screen position, while
+      while properly handling map edge collision detection
+    - map screen transitioning (i.e. going into a door will load house interior)
 
 ---
 
 # GAME IDEA: Italian Tomato Thrower (Vampire?)
+
+**Desire:** create a multiplayer family friendly, horror "jump scare" game to
+play with nieces and nephews that live far away.
 
 - tomatoes:
   - randomly generated position, or always "in the kitchen"?

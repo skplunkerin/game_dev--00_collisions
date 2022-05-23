@@ -118,6 +118,17 @@ func (g *Game) Update() error {
 			g.playerPosY += 3
 		}
 	}
+	checkCollisions(g)
+
+	return nil
+}
+
+// checkCollisions will make sure the player's X,Y positions will collide
+// against the screen boundaries (window edges), and certain image tiles that
+// are setup to be a boundary.
+// TODO: setup logic to signify which image tiles have a collision boundary.
+//       (chris)
+func checkCollisions(g *Game) {
 	// Create map boundaries (screen edges)
 	// inspired by https://github.com/chonlatee/spaceship
 	w, h := g.player.Size()
@@ -137,8 +148,6 @@ func (g *Game) Update() error {
 	if g.playerPosY+float64(h) >= float64(screenHeight) {
 		g.playerPosY = float64(screenHeight) - float64(h)
 	}
-
-	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {

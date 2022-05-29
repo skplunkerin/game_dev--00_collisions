@@ -11,6 +11,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/jakecoffman/cp"
 )
 
 // modifying code originally from:
@@ -31,14 +32,22 @@ var (
 )
 
 type Game struct {
-	keys       []ebiten.Key
-	bgLayers   [][]int
-	player     *ebiten.Image
-	playerPosX float64
-	playerPosY float64
+	keys     []ebiten.Key
+	bgLayers [][]int
+	// NOTE: this tutorial references meta data from a tilemap to determine what
+	// tiles should cause a collision, that sounds like a better option than me
+	// manually tracking tile ID's:
+	//   - tutorial: http://chipmunk-physics.net/tutorials/ChipmunkTileDemo/
+	//               https://www.raywenderlich.com/2779-collisions-and-collectables-how-to-make-a-tile-based-game-with-cocos2d-2-x-part-2#toc-anchor-001
+	// bgCollisionTileIds []int
+	// bgCollisions [][]int
+	bgCollisions []int
+	player       *ebiten.Image
+	playerPosX   float64
+	playerPosY   float64
+	space        *cp.Space
 }
 
-// var g &Game
 var g *Game
 
 func init() {
@@ -46,10 +55,73 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	// Chipmunk creates a list of all possible collisions that it will need to
+	// iterate over for each check; each check makes the physics/collisions more
+	// accurate, but each iteration takes CPU; this will need to be balanced.
+	// https://chipmunk-physics.net/release/ChipmunkLatest-Docs/#cpSpace-Iterations
+	space := cp.NewSpace()
+	space.Iterations = 1 // Default: 10
+
+	// Don't think this applies to use, even though the tiles are the same size.
+	// https://chipmunk-physics.net/release/ChipmunkLatest-Docs/#cpSpace-SpatialHash
+	// // The space will contain a very large number of similarly sized objects.
+	// // This is the perfect candidate for using the spatial hash.
+	// // Generally you will never need to do this.
+	// space.UseSpatialHash(2.0, 10000)
+
 	g = &Game{
+		space:      space,
 		player:     eImg,
 		playerPosX: 0,
 		playerPosY: 0,
+		// collisions idea:
+		// 1. []int{}: tilemap id's for collide-able tiles
+		//    - pro: very simple
+		//    - con: don't have an easy way to identify the tile id's;
+		//           (fortunately, this example is easy enough to grab from below)
+		// 2. [][]int{}: tilemap of the position that is collide-able
+		// bgCollisionTileIds: []int{
+		// 	26, 27, 28, 29, 30, 31,
+		// 	51, 52, 53, 54, 55, 56,
+		// 	76, 77, 78, 79, 80, 81,
+		// 	101, 102, 103, 104, 105, 106,
+		// 	126, 127, 128, 129, 130, 131,
+		// 	303,
+		// },
+		// bgCollisions: [][]int{
+		bgCollisions: []int{
+			// 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			// 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
+			// 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
+			// 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
+			// 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
+			// 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
+			// 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0,
+			// 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			// 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			// 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			// 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			// 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			// 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			// 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			// 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		},
 		bgLayers: [][]int{
 			{
 				243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243, 243,
@@ -103,6 +175,7 @@ func init() {
 }
 
 func (g *Game) Update() error {
+	g.space.Step(1.0 / float64(ebiten.MaxTPS()))
 	g.keys = inpututil.AppendPressedKeys(g.keys[:0])
 	for _, k := range g.keys {
 		// TODO [bug]
@@ -118,7 +191,8 @@ func (g *Game) Update() error {
 			g.playerPosY += 3
 		}
 	}
-	checkCollisions(g)
+
+	g.checkCollisions()
 
 	return nil
 }
@@ -128,7 +202,7 @@ func (g *Game) Update() error {
 // are setup to be a boundary.
 // TODO: setup logic to signify which image tiles have a collision boundary.
 //       (chris)
-func checkCollisions(g *Game) {
+func (g *Game) checkCollisions() {
 	// Create map boundaries (screen edges)
 	// inspired by https://github.com/chonlatee/spaceship
 	w, h := g.player.Size()
@@ -148,6 +222,8 @@ func checkCollisions(g *Game) {
 	if g.playerPosY+float64(h) >= float64(screenHeight) {
 		g.playerPosY = float64(screenHeight) - float64(h)
 	}
+
+	// map tiles collisions should happen from Chipmunk2D (cp)
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
@@ -164,16 +240,74 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 			sx := (t % tileXNum) * tileSize
 			sy := (t / tileXNum) * tileSize
+			// if layer == 1 {
+			// 	if t != 0 {
+			// 		fmt.Println("layer: ", layer)
+			// 		fmt.Println("l: ", l)
+			// 		fmt.Println("i: ", i)
+			// 		fmt.Println("t: ", t)
+			// 		fmt.Printf("bgCollisions[t]: %#v\n", g.bgCollisions[t])
+			// 		fmt.Printf("bgCollisions[i]: %#v\n", g.bgCollisions[i])
+			// 		fmt.Println()
+			// 	}
+			// }
+			if g.bgCollisions[i] == 1 {
+				// add collision for tile
+				// https://www.reddit.com/r/ebiten/comments/mghl4k/using_the_go_port_of_chipmunk2d_in_a_tile_based/
+				// NOTE: check 1st comment, it would be better to create a single object
+				// with all collisions than several objects with their own collisions if I
+				// can figure this out.
+				// (it looks like autogeometry capability was added to the repo: https://github.com/jakecoffman/cp/pull/20)
+				// add blocks to physics space
+				body := cp.NewStaticBody()
+				body.SetPosition(cp.Vector{X: float64(sx), Y: float64(sy)})
+				shape := cp.NewBox(body, tileSize, tileSize, 0)
+				shape.SetElasticity(0)
+				shape.SetFriction(1)
+				g.space.AddBody(shape.Body())
+				g.space.AddShape(shape)
+			}
+
+			// add tile image to screen
 			screen.DrawImage(tilesImage.SubImage(image.Rect(sx, sy, sx+tileSize, sy+tileSize)).(*ebiten.Image), op)
 		}
 	}
 
 	// Character image:
 	op := &ebiten.DrawImageOptions{}
+	// TODO: is `playerPosX|Y` the point in the center of the avatar? I think it
+	// is? (chris)
 	op.GeoM.Translate(float64(g.playerPosX), float64(g.playerPosY))
+	// // body := cp.NewStaticBody()
+	// body := cp.NewBody()
+	// body.SetPosition(cp.Vector{X: float64(sx), Y: float64(sy)})
+	// shape := cp.NewBox(body, tileSize, tileSize, 0)
+	// shape.SetElasticity(0)
+	// shape.SetFriction(1)
+	// g.space.AddBody(shape.Body())
+	// g.space.AddShape(shape)
+	// add collision to character
+	body := cp.NewBody(1.0, cp.INFINITY)
+	// is this needed? (chris)
+	// body.SetVelocity()
+	shape := cp.NewCircle(body, tileSize/2, cp.Vector{})
+	shape.SetFriction(0)
+	shape.SetElasticity(0)
+	shape.SetCollisionType(1)
+	body.SetPosition(cp.Vector{X: float64(g.playerPosX), Y: float64(g.playerPosY)})
+	// add character to screen
 	screen.DrawImage(g.player, op)
 
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS()))
+	ebitenutil.DebugPrint(screen,
+		fmt.Sprintf(
+			"TPS: %0.2f\n"+
+				"PlayerX: %f\n"+
+				"PlayerY: %f",
+			ebiten.CurrentTPS(),
+			g.playerPosX,
+			g.playerPosY,
+		),
+	)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
